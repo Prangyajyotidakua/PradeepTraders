@@ -222,8 +222,8 @@ import helmet from "helmet";
 
 /* ================= ROUTES ================= */
 import carRoutes from "./routes/carRoutes.js";
-import reviewRoutes from "./routes/reviewRouter.js";
-import authRoutes from "./routes/authRoutes.js"; // ✅ FIXED (IMPORTANT)
+import reviewRoutes from "./routes/reviewRoutes.js";
+import authRoutes from "./routes/authRoutes.js";
 
 dotenv.config();
 
@@ -250,7 +250,10 @@ app.use("/uploads", express.static("uploads"));
 /* ================= ROUTES ================= */
 app.use("/api/cars", carRoutes);
 app.use("/api/reviews", reviewRoutes);
-app.use("/api/auth", authRoutes); // ✅ FIXED ROUTE MOUNT
+
+/* 🔥 IMPORTANT FIX */
+app.use("/api/auth", authRoutes);
+console.log("🔥 AUTH ROUTES LOADED");
 
 /* ================= TEST ROUTE ================= */
 app.get("/", (req, res) => {
