@@ -223,7 +223,7 @@ import helmet from "helmet";
 /* ================= ROUTES ================= */
 import carRoutes from "./routes/carRoutes.js";
 import reviewRoutes from "./routes/reviewRouter.js";
-import authRoutes from "./routes/authRoutes.js"; // ✅ ADDED AUTH
+import authRoutes from "./routes/authRoutes.js"; // ✅ FIXED (IMPORTANT)
 
 dotenv.config();
 
@@ -250,14 +250,14 @@ app.use("/uploads", express.static("uploads"));
 /* ================= ROUTES ================= */
 app.use("/api/cars", carRoutes);
 app.use("/api/reviews", reviewRoutes);
-app.use("/api/auth", authRoutes); // ✅ FIXED (THIS WAS MISSING)
+app.use("/api/auth", authRoutes); // ✅ FIXED ROUTE MOUNT
 
 /* ================= TEST ROUTE ================= */
 app.get("/", (req, res) => {
   res.send("Backend running ✅");
 });
 
-/* ================= DB + SERVER ================= */
+/* ================= DATABASE ================= */
 const PORT = process.env.PORT || 5000;
 
 mongoose.connect(process.env.MONGO_URI)
