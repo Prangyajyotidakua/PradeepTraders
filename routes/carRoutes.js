@@ -203,22 +203,16 @@
 // });
 
 // export default router;
+
 import express from "express";
 import multer from "multer";
 import Car from "../models/Car.js";
+import cloudinary from "../config/cloudinary.js";
 
 const router = express.Router();
 
-/* ================= MULTER CONFIG ================= */
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, "uploads/");
-  },
-  filename: (req, file, cb) => {
-    cb(null, Date.now() + "-" + file.originalname);
-  },
-});
-
+/* ================= MULTER MEMORY ================= */
+const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
 /* ================= ADD CAR ================= */
@@ -226,10 +220,25 @@ router.post("/add", upload.array("images", 10), async (req, res) => {
   try {
     console.log("✅ ADD CAR API HIT");
 
-    const imageUrls = req.files.map(
-      (file) => `http://localhost:5000/uploads/${file.filename}`
-    );
+    const imageUrls = [];
 
+    // Upload each image to Cloudinary
+    for (let file of req.files) {
+      const result = await new Promise((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream(
+          { folder: "cars" },
+          (error, result) => {
+            if (error) reject(error);
+            else resolve(result);
+          }
+        );
+        stream.end(file.buffer);
+      });
+
+      imageUrls.push(result.secure_url);
+    }
+
+    // Save to DB
     const car = await Car.create({
       ...req.body,
       sold: req.body.sold === "true",
@@ -239,7 +248,7 @@ router.post("/add", upload.array("images", 10), async (req, res) => {
     res.status(201).json({ msg: "Car added", car });
 
   } catch (err) {
-    console.error(err);
+    console.error("❌ ADD CAR ERROR:", err);
     res.status(500).json({ error: err.message });
   }
 });
