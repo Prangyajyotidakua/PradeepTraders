@@ -274,6 +274,199 @@
 // export default router;
 
 
+// import express from "express";
+// import jwt from "jsonwebtoken";
+// import bcrypt from "bcryptjs";
+// import User from "../models/User.js";
+// import { generateOTP, sendOTPEmail } from "../config/otp.js";
+
+// const router = express.Router();
+// const JWT_SECRET = process.env.JWT_SECRET;
+// // const JWT_SECRET = process.env.JWT_SECRET || "SECRET_KEY";
+
+// /* =========================
+//    SIGNUP (SEND OTP)
+// ========================= */
+// router.post("/signup", async (req, res) => {
+//   try {
+//     const { name, email, phone, password } = req.body;
+
+//     const existingUser = await User.findOne({ email });
+//     if (existingUser) {
+//       return res.status(400).json({ msg: "User already exists" });
+//     }
+
+//     const hashedPassword = await bcrypt.hash(password, 10);
+
+//     const otp = generateOTP();
+
+//     await sendOTPEmail(email, otp);
+
+//     const user = await User.create({
+//       name,
+//       email,
+//       phone,
+//       password: hashedPassword,
+//       signupOtp: otp,
+//       signupOtpExpiry: Date.now() + 5 * 60 * 1000,
+//       isVerified: false,
+//     });
+
+//     res.json({ msg: "OTP sent to email for verification" });
+//   } catch (err) {
+//     res.status(500).json({ error: err.message });
+//   }
+// });
+
+// /* =========================
+//    VERIFY SIGNUP OTP
+// ========================= */
+// router.post("/verify-signup", async (req, res) => {
+//   try {
+//     const { email, otp } = req.body;
+
+//     const user = await User.findOne({ email });
+
+//     if (!user) return res.status(400).json({ msg: "User not found" });
+
+//     if (!otp) return res.status(400).json({ msg: "OTP required" });
+
+//     if (String(user.signupOtp) !== String(otp)) {
+//       return res.status(400).json({ msg: "Invalid OTP" });
+//     }
+
+//     if (user.signupOtpExpiry < Date.now()) {
+//       return res.status(400).json({ msg: "OTP expired" });
+//     }
+
+//     user.isVerified = true;
+//     user.signupOtp = null;
+//     user.signupOtpExpiry = null;
+
+//     await user.save();
+
+//     res.json({ msg: "Account verified successfully" });
+//   } catch (err) {
+//     res.status(500).json({ error: err.message });
+//   }
+// });
+
+// /* =========================
+//    LOGIN (SEND OTP)
+// ========================= */
+// router.post("/login", async (req, res) => {
+//   try {
+//     const { email, password } = req.body;
+
+//     const user = await User.findOne({ email });
+
+//     if (!user) return res.status(400).json({ msg: "User not found" });
+
+//     if (!user.isVerified) {
+//       return res.status(400).json({ msg: "Verify account first" });
+//     }
+
+//     const isMatch = await bcrypt.compare(password, user.password);
+
+//     if (!isMatch) {
+//       return res.status(400).json({ msg: "Wrong password" });
+//     }
+
+//     const otp = generateOTP();
+
+//     await sendOTPEmail(email, otp);
+
+//     user.loginOtp = otp;
+//     user.loginOtpExpiry = Date.now() + 5 * 60 * 1000;
+
+//     await user.save();
+
+//     res.json({ msg: "OTP sent to email for login" });
+//   } catch (err) {
+//     res.status(500).json({ error: err.message });
+//   }
+// });
+
+// /* =========================
+//    VERIFY LOGIN OTP
+// ========================= */
+// router.post("/verify-login", async (req, res) => {
+//   try {
+//     const { email, otp } = req.body;
+
+//     const user = await User.findOne({ email });
+
+//     if (!user) return res.status(400).json({ msg: "User not found" });
+
+//     if (String(user.loginOtp) !== String(otp)) {
+//       return res.status(400).json({ msg: "Invalid OTP" });
+//     }
+
+//     if (user.loginOtpExpiry < Date.now()) {
+//       return res.status(400).json({ msg: "OTP expired" });
+//     }
+
+//     user.loginOtp = null;
+//     user.loginOtpExpiry = null;
+
+//     await user.save();
+
+//     const token = jwt.sign(
+//       { id: user._id, role: user.role },
+//       JWT_SECRET,
+//       { expiresIn: "1d" }
+//     );
+
+//     res.cookie("token", token, {
+//       httpOnly: true,
+//       sameSite: "lax",
+//       secure: false,
+//     });
+
+//     res.json({
+//       msg: "Login successful",
+//       token,
+//       user: {
+//         id: user._id,
+//         name: user.name,
+//         email: user.email,
+//         role: user.role,
+//       },
+//     });
+//   } catch (err) {
+//     res.status(500).json({ error: err.message });
+//   }
+// });
+
+// /* =========================
+//    LOGOUT
+// ========================= */
+// router.post("/logout", (req, res) => {
+//   res.clearCookie("token");
+//   res.json({ msg: "Logged out" });
+// });
+
+// /* =========================
+//    MAKE ADMIN
+// ========================= */
+// router.put("/make-admin/:email", async (req, res) => {
+//   try {
+//     const user = await User.findOneAndUpdate(
+//       { email: req.params.email },
+//       { role: "admin" },
+//       { new: true }
+//     );
+
+//     if (!user) return res.status(404).json({ msg: "User not found" });
+
+//     res.json({ msg: "User is now admin", user });
+//   } catch (err) {
+//     res.status(500).json({ error: err.message });
+//   }
+// });
+
+// export default router;
+
 import express from "express";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
@@ -282,7 +475,10 @@ import { generateOTP, sendOTPEmail } from "../config/otp.js";
 
 const router = express.Router();
 
-const JWT_SECRET = process.env.JWT_SECRET || "SECRET_KEY";
+/* =========================
+   JWT SECRET (FIXED)
+========================= */
+const JWT_SECRET = process.env.JWT_SECRET;
 
 /* =========================
    SIGNUP (SEND OTP)
@@ -291,18 +487,21 @@ router.post("/signup", async (req, res) => {
   try {
     const { name, email, phone, password } = req.body;
 
+    if (!name || !email || !password) {
+      return res.status(400).json({ msg: "Required fields missing" });
+    }
+
     const existingUser = await User.findOne({ email });
     if (existingUser) {
       return res.status(400).json({ msg: "User already exists" });
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
-
     const otp = generateOTP();
 
     await sendOTPEmail(email, otp);
 
-    const user = await User.create({
+    await User.create({
       name,
       email,
       phone,
@@ -326,7 +525,6 @@ router.post("/verify-signup", async (req, res) => {
     const { email, otp } = req.body;
 
     const user = await User.findOne({ email });
-
     if (!user) return res.status(400).json({ msg: "User not found" });
 
     if (!otp) return res.status(400).json({ msg: "OTP required" });
@@ -335,7 +533,7 @@ router.post("/verify-signup", async (req, res) => {
       return res.status(400).json({ msg: "Invalid OTP" });
     }
 
-    if (user.signupOtpExpiry < Date.now()) {
+    if (!user.signupOtpExpiry || user.signupOtpExpiry < Date.now()) {
       return res.status(400).json({ msg: "OTP expired" });
     }
 
@@ -358,6 +556,10 @@ router.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
 
+    if (!email || !password) {
+      return res.status(400).json({ msg: "Email and password required" });
+    }
+
     const user = await User.findOne({ email });
 
     if (!user) return res.status(400).json({ msg: "User not found" });
@@ -373,7 +575,6 @@ router.post("/login", async (req, res) => {
     }
 
     const otp = generateOTP();
-
     await sendOTPEmail(email, otp);
 
     user.loginOtp = otp;
@@ -395,14 +596,13 @@ router.post("/verify-login", async (req, res) => {
     const { email, otp } = req.body;
 
     const user = await User.findOne({ email });
-
     if (!user) return res.status(400).json({ msg: "User not found" });
 
     if (String(user.loginOtp) !== String(otp)) {
       return res.status(400).json({ msg: "Invalid OTP" });
     }
 
-    if (user.loginOtpExpiry < Date.now()) {
+    if (!user.loginOtpExpiry || user.loginOtpExpiry < Date.now()) {
       return res.status(400).json({ msg: "OTP expired" });
     }
 
@@ -420,7 +620,7 @@ router.post("/verify-login", async (req, res) => {
     res.cookie("token", token, {
       httpOnly: true,
       sameSite: "lax",
-      secure: false,
+      secure: process.env.NODE_ENV === "production",
     });
 
     res.json({

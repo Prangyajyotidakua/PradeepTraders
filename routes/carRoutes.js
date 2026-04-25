@@ -203,7 +203,6 @@
 // });
 
 // export default router;
-
 import express from "express";
 import multer from "multer";
 import Car from "../models/Car.js";
@@ -218,11 +217,8 @@ const upload = multer({ storage });
 /* ================= ADD CAR ================= */
 router.post("/add", upload.array("images", 10), async (req, res) => {
   try {
-    console.log("✅ ADD CAR API HIT");
-
     const imageUrls = [];
 
-    // Upload each image to Cloudinary
     for (let file of req.files) {
       const result = await new Promise((resolve, reject) => {
         const stream = cloudinary.uploader.upload_stream(
@@ -238,7 +234,6 @@ router.post("/add", upload.array("images", 10), async (req, res) => {
       imageUrls.push(result.secure_url);
     }
 
-    // Save to DB
     const car = await Car.create({
       ...req.body,
       sold: req.body.sold === "true",
@@ -246,9 +241,8 @@ router.post("/add", upload.array("images", 10), async (req, res) => {
     });
 
     res.status(201).json({ msg: "Car added", car });
-
   } catch (err) {
-    console.error("❌ ADD CAR ERROR:", err);
+    console.error(err);
     res.status(500).json({ error: err.message });
   }
 });
@@ -258,6 +252,21 @@ router.get("/", async (req, res) => {
   try {
     const cars = await Car.find().sort({ createdAt: -1 });
     res.json(cars);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/* ================= GET SINGLE ================= */
+router.get("/:id", async (req, res) => {
+  try {
+    const car = await Car.findById(req.params.id);
+
+    if (!car) {
+      return res.status(404).json({ msg: "Car not found" });
+    }
+
+    res.json(car);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
