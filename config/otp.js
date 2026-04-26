@@ -162,9 +162,10 @@
 import { Resend } from "resend";
 
 /* 🔐 Check API key */
-if (!process.env.RESEND_API_KEY) {
-  throw new Error("RESEND_API_KEY is missing in environment variables");
-}
+// if (!process.env.RESEND_API_KEY) {
+//   throw new Error("RESEND_API_KEY is missing in environment variables");
+// }
+const resend = new Resend("re_FFJTFaAR_HcMLHYfvJ7B3785DhjRvVyEv");
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
