@@ -365,42 +365,197 @@
 // });
 
 // export default router;
+import express from "express";
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
+import User from "../models/User.js";
+import { generateOTP, sendOTPEmail } from "../config/otp.js";
 
-import { Resend } from "resend";
+const router = express.Router();
 
-if (!process.env.RESEND_API_KEY) {
-  throw new Error("RESEND_API_KEY is missing in environment variables");
-}
-
-const resend = new Resend(process.env.RESEND_API_KEY);
-
-/* ================= GENERATE OTP ================= */
-export const generateOTP = () => {
-  return Math.floor(100000 + Math.random() * 900000);
-};
-
-/* ================= SEND EMAIL ================= */
-export const sendOTPEmail = async (email, otp) => {
+/* ================= SIGNUP ================= */
+router.post("/signup", async (req, res) => {
   try {
-    const response = await resend.emails.send({
-      from: "onboarding@resend.dev",
-      to: email,
-      subject: "Your OTP Code",
-      html: `
-        <div style="font-family:sans-serif">
-          <h2>Pradeep Traders</h2>
-          <p>Your OTP is:</p>
-          <h1>${otp}</h1>
-          <p>This OTP is valid for 5 minutes.</p>
-        </div>
-      `,
+    const { name, email, password } = req.body;
+
+    if (!name || !email || !password) {
+      return res.status(400).json({ msg: "All fields are required" });
+    }
+
+    const exists = await User.findOne({ email });
+    if (exists) return res.status(400).json({ msg: "User already exists" });
+
+    const hashed = await bcrypt.hash(password, 10);
+    const otp = generateOTP();
+
+    // ✅ Don't break signup if email fails
+    try {
+      await sendOTPEmail(email, otp);
+    } catch (err) {
+      console.log("⚠️ Email failed but continuing:", err.message);
+    }
+
+    await User.create({
+      name,
+      email,
+      password: hashed,
+      signupOtp: otp,
+      signupOtpExpiry: Date.now() + 5 * 60 * 1000,
+      isVerified: false,
     });
 
-    console.log("✅ Email sent:", response);
-    return response;
+    res.json({ msg: "OTP sent to email" });
 
-  } catch (error) {
-    console.error("❌ Email Error:", error);
-    throw new Error(error.message || "Email sending failed");
+  } catch (err) {
+    console.error("🔥 SIGNUP ERROR:", err);
+    res.status(500).json({ msg: err.message });
   }
-};
+});
+
+/* ================= VERIFY SIGNUP ================= */
+router.post("/verify-signup", async (req, res) => {
+  try {
+    const { email, otp } = req.body;
+
+    if (!email || !otp) {
+      return res.status(400).json({ msg: "Email and OTP required" });
+    }
+
+    const user = await User.findOne({ email });
+    if (!user) return res.status(400).json({ msg: "User not found" });
+
+    if (!user.signupOtp || String(user.signupOtp) !== String(otp)) {
+      return res.status(400).json({ msg: "Invalid OTP" });
+    }
+
+    if (user.signupOtpExpiry < Date.now()) {
+      return res.status(400).json({ msg: "OTP expired" });
+    }
+
+    user.isVerified = true;
+    user.signupOtp = null;
+    user.signupOtpExpiry = null;
+
+    await user.save();
+
+    res.json({ msg: "Account verified" });
+
+  } catch (err) {
+    console.error("🔥 VERIFY SIGNUP ERROR:", err);
+    res.status(500).json({ msg: err.message });
+  }
+});
+
+/* ================= LOGIN ================= */
+router.post("/login", async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({ msg: "Email and password required" });
+    }
+
+    const user = await User.findOne({ email });
+    if (!user) return res.status(400).json({ msg: "User not found" });
+
+    if (!user.isVerified) {
+      return res.status(400).json({ msg: "Please verify your account first" });
+    }
+
+    const match = await bcrypt.compare(password, user.password);
+    if (!match) return res.status(400).json({ msg: "Wrong password" });
+
+    const otp = generateOTP();
+
+    user.loginOtp = otp;
+    user.loginOtpExpiry = Date.now() + 5 * 60 * 1000;
+
+    await user.save();
+
+    // ✅ Don't break login if email fails
+    try {
+      await sendOTPEmail(email, otp);
+    } catch (err) {
+      console.log("⚠️ Email failed but continuing:", err.message);
+    }
+
+    res.json({ msg: "Login OTP sent" });
+
+  } catch (err) {
+    console.error("🔥 LOGIN ERROR:", err);
+    res.status(500).json({ msg: err.message });
+  }
+});
+
+/* ================= VERIFY LOGIN ================= */
+router.post("/verify-login", async (req, res) => {
+  try {
+    const { email, otp } = req.body;
+
+    if (!email || !otp) {
+      return res.status(400).json({ msg: "Email and OTP required" });
+    }
+
+    const user = await User.findOne({ email });
+    if (!user) return res.status(400).json({ msg: "User not found" });
+
+    if (!user.loginOtp || String(user.loginOtp) !== String(otp)) {
+      return res.status(400).json({ msg: "Invalid OTP" });
+    }
+
+    if (user.loginOtpExpiry < Date.now()) {
+      return res.status(400).json({ msg: "OTP expired" });
+    }
+
+    user.loginOtp = null;
+    user.loginOtpExpiry = null;
+
+    await user.save();
+
+    const token = jwt.sign(
+      { id: user._id, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: "1d" }
+    );
+
+    res.cookie("token", token, {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production", // ✅ important
+    });
+
+    res.json({
+      msg: "Login successful",
+      token,
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+      },
+    });
+
+  } catch (err) {
+    console.error("🔥 VERIFY LOGIN ERROR:", err);
+    res.status(500).json({ msg: err.message });
+  }
+});
+
+/* ================= LOGOUT ================= */
+router.post("/logout", (req, res) => {
+  try {
+    res.clearCookie("token", {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+    });
+
+    res.json({ msg: "Logged out successfully" });
+
+  } catch (err) {
+    console.error("🔥 LOGOUT ERROR:", err);
+    res.status(500).json({ msg: err.message });
+  }
+});
+
+export default router;

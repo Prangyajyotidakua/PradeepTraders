@@ -159,20 +159,42 @@
 //     console.log("📩 OTP sent to:", email);
 // };
 
-
 import { Resend } from "resend";
+
+/* 🔐 Check API key */
+if (!process.env.RESEND_API_KEY) {
+  throw new Error("RESEND_API_KEY is missing in environment variables");
+}
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
+/* ================= GENERATE OTP ================= */
 export const generateOTP = () => {
   return Math.floor(100000 + Math.random() * 900000);
 };
 
+/* ================= SEND EMAIL ================= */
 export const sendOTPEmail = async (email, otp) => {
-  await resend.emails.send({
-    from: "onboarding@resend.dev",
-    to: email,
-    subject: "Your OTP Code",
-    html: `<h2>Your OTP is: ${otp}</h2>`,
-  });
+  try {
+    const response = await resend.emails.send({
+      from: "onboarding@resend.dev",
+      to: email,
+      subject: "Your OTP Code",
+      html: `
+        <div style="font-family:sans-serif">
+          <h2>Pradeep Traders</h2>
+          <p>Your OTP is:</p>
+          <h1>${otp}</h1>
+          <p>This OTP is valid for 5 minutes.</p>
+        </div>
+      `,
+    });
+
+    console.log("✅ Email sent:", response);
+    return response;
+
+  } catch (error) {
+    console.error("❌ Email Error:", error);
+    throw new Error(error.message || "Email sending failed");
+  }
 };

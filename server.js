@@ -61,7 +61,6 @@
 //     console.error("❌ DB Error:", err);
 //     process.exit(1);
 //   });
-
 import express from "express";
 import mongoose from "mongoose";
 import dotenv from "dotenv";
@@ -79,7 +78,7 @@ import authRoutes from "./routes/authRoutes.js";
 
 const app = express();
 
-/* ================= DEBUG ENV ================= */
+/* ================= DEBUG ================= */
 console.log("🌍 ENV CHECK MONGO_URI:", process.env.MONGO_URI);
 
 /* ================= SECURITY ================= */
@@ -126,7 +125,7 @@ app.use((err, req, res, next) => {
 /* ================= DATABASE ================= */
 mongoose
   .connect(process.env.MONGO_URI, {
-    serverSelectionTimeoutMS: 10000, // ⏱ fail fast if can't connect
+    serverSelectionTimeoutMS: 10000,
   })
   .then(() => {
     console.log("✅ MongoDB Connected");
