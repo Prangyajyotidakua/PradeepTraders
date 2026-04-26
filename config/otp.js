@@ -70,91 +70,109 @@
 //   return Math.floor(100000 + Math.random() * 900000).toString();
 // };
 
-import nodemailer from "nodemailer";
-import dotenv from "dotenv";
-dotenv.config();
+// import nodemailer from "nodemailer";
+// import dotenv from "dotenv";
+// dotenv.config();
 
-const transporter = nodemailer.createTransport({
-    service: "gmail",
-    auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
-    },
-});
+// const transporter = nodemailer.createTransport({
+//     service: "gmail",
+//     auth: {
+//         user: process.env.EMAIL_USER,
+//         pass: process.env.EMAIL_PASS,
+//     },
+// });
+
+// export const generateOTP = () => {
+//     return Math.floor(100000 + Math.random() * 900000).toString();
+// };
+
+// export const sendOTPEmail = async (email, otp) => {
+//     await transporter.sendMail({
+//         from: `"OTP System" <${process.env.EMAIL_USER}>`,
+//         to: email,
+//         subject: "Your OTP Code",
+//         html: `
+//        <div style="
+//     font-family: Arial, sans-serif;
+//     background: #f4f6f8;
+//     padding: 40px;
+//   ">
+//     <div style="
+//       max-width: 420px;
+//       margin: auto;
+//       background: #ffffff;
+//       border-radius: 12px;
+//       padding: 30px;
+//       text-align: center;
+//       box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+//     ">
+
+//       <h2 style="
+//         margin-bottom: 10px;
+//         color: #333;
+//       ">
+//         🔐 Verification Code
+//       </h2>
+
+//       <p style="
+//         color: #666;
+//         font-size: 14px;
+//         margin-bottom: 25px;
+//       ">
+//         Use the OTP below to complete your verification
+//       </p>
+
+//       <div style="
+//         font-size: 32px;
+//         letter-spacing: 6px;
+//         font-weight: bold;
+//         color: #111;
+//         background: #f1f1f1;
+//         padding: 15px 20px;
+//         border-radius: 8px;
+//         display: inline-block;
+//       ">
+//         ${otp}
+//       </div>
+
+//       <p style="
+//         margin-top: 25px;
+//         font-size: 13px;
+//         color: #888;
+//       ">
+//         ⚠️ This OTP is valid for <b>5 minutes</b>. Do not share it with anyone.
+//       </p>
+
+//       <div style="
+//         margin-top: 30px;
+//         font-size: 12px;
+//         color: #aaa;
+//       ">
+//         If you didn’t request this, you can ignore this email.
+//       </div>
+
+//     </div>
+//   </div>
+//     `,
+//     });
+
+//     console.log("📩 OTP sent to:", email);
+// };
+
+
+import { Resend } from "resend";
+
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 export const generateOTP = () => {
-    return Math.floor(100000 + Math.random() * 900000).toString();
+  return Math.floor(100000 + Math.random() * 900000);
 };
 
 export const sendOTPEmail = async (email, otp) => {
-    await transporter.sendMail({
-        from: `"OTP System" <${process.env.EMAIL_USER}>`,
-        to: email,
-        subject: "Your OTP Code",
-        html: `
-       <div style="
-    font-family: Arial, sans-serif;
-    background: #f4f6f8;
-    padding: 40px;
-  ">
-    <div style="
-      max-width: 420px;
-      margin: auto;
-      background: #ffffff;
-      border-radius: 12px;
-      padding: 30px;
-      text-align: center;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-    ">
-
-      <h2 style="
-        margin-bottom: 10px;
-        color: #333;
-      ">
-        🔐 Verification Code
-      </h2>
-
-      <p style="
-        color: #666;
-        font-size: 14px;
-        margin-bottom: 25px;
-      ">
-        Use the OTP below to complete your verification
-      </p>
-
-      <div style="
-        font-size: 32px;
-        letter-spacing: 6px;
-        font-weight: bold;
-        color: #111;
-        background: #f1f1f1;
-        padding: 15px 20px;
-        border-radius: 8px;
-        display: inline-block;
-      ">
-        ${otp}
-      </div>
-
-      <p style="
-        margin-top: 25px;
-        font-size: 13px;
-        color: #888;
-      ">
-        ⚠️ This OTP is valid for <b>5 minutes</b>. Do not share it with anyone.
-      </p>
-
-      <div style="
-        margin-top: 30px;
-        font-size: 12px;
-        color: #aaa;
-      ">
-        If you didn’t request this, you can ignore this email.
-      </div>
-
-    </div>
-  </div>
-    `,
-    });
-
-    console.log("📩 OTP sent to:", email);
+  await resend.emails.send({
+    from: "onboarding@resend.dev",
+    to: email,
+    subject: "Your OTP Code",
+    html: `<h2>Your OTP is: ${otp}</h2>`,
+  });
 };
