@@ -235,8 +235,9 @@ app.use(helmet());
 /* ================= MIDDLEWARE ================= */
 app.use(cors({
   origin: [
-    "http://localhost:5173",
-    "https://your-frontend-domain.com"
+  "http://localhost:5173",
+  "https://pradeeptrader.com",
+  "https://www.pradeeptrader.com"
   ],
   credentials: true,
 }));
