@@ -157,7 +157,7 @@ dotenv.config();
 import carRoutes from "./routes/carRoutes.js";
 import reviewRoutes from "./routes/reviewRoutes.js";
 import authRoutes from "./routes/authRoutes.js";
-
+import userRoutes from "./routes/userRoutes.js"
 const app = express();
 
 /* ================= SECURITY ================= */
@@ -186,6 +186,7 @@ app.use("/uploads", express.static("uploads"));
 app.use("/api/auth", authRoutes);
 app.use("/api/cars", carRoutes);
 app.use("/api/reviews", reviewRoutes);
+app.use("/api/user", userRoutes); 
 
 /* ================= TEST ROUTE ================= */
 app.get("/", (req, res) => {
