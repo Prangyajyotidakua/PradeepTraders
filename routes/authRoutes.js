@@ -218,7 +218,13 @@ router.post("/signup", async (req, res) => {
     const hashed = await bcrypt.hash(password, 10);
     const otp = generateOTP();
 
-    await sendOTPEmail(email, otp);
+    // 👉 wrap email in try-catch
+    try {
+      await sendOTPEmail(email, otp);
+    } catch (emailErr) {
+      console.error("📧 EMAIL ERROR:", emailErr.message);
+      return res.status(500).json({ msg: "Email sending failed" });
+    }
 
     await User.create({
       name,
@@ -232,8 +238,8 @@ router.post("/signup", async (req, res) => {
     res.json({ msg: "OTP sent to email" });
 
   } catch (err) {
-    console.log(err);
-    res.status(500).json({ msg: "Signup error" });
+    console.error("🔥 SIGNUP ERROR:", err); // IMPORTANT
+    res.status(500).json({ msg: err.message }); // SHOW REAL ERROR
   }
 });
 
